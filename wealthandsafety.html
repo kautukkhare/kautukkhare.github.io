@@ -20,14 +20,21 @@
 </head>
 
 <body onload='init()'>
-		<h1>Is wealth making our societies safer?</h3>
-			<p> To answer this question we explore how for various countries number of homicides (a proxy for safety) evolved with Per Capita GDP in constant 2010$ terms (a proxy of wealth) using a scatter plot.</p>
-			<p> Data source is World Development Index parameters.</p>
-		<p> To see for yourself, you an choose one or more region and click through years to see how the countries in the chosen region has evolved. You can also hover over any of the circle to get more details about a specific country.</p>
-		<p> Note: Not all countries have homicide data for each year, hence they may appear or disappear as you run through years </p>
-		<h3>Select one or more regions:</h3>
+		<h1>Is Wealth making our societies Safer?</h1>
+		<p> <b> What have we done: </b> To answer above question we explore how for various countries homicide rate (a proxy for how unsafe society is) evolves with GDP Per Capita in constant 2010$ PPP terms (a proxy for wealth in society) over 20 years.</p>
+
+		<p> <b> Hypothesis: </b> If Wealth is making our societies Safer, we should expect to see a general trend of countries slowly moving towards bottom right in the plot below, as their citizens get richer, and towards top left if thier citizens get poorer. <b>But is it really happening?</b></p>
+			
+		<p> <b> User Controls: </b> To see for yourself, you can:
+		<ul>1. Choose one or more regions and click through years to see how the countries in the chosen regions have evolved</ul> 
+		<ul>2. Hover over any of the country circle to get more details about that country</ul>
+		<ul>3. Select specific countries by clicking on circles and then see how they have evolved over years</ul>
+		</p>
+		<p> <b>Data Source:</b> World Development Index parameters. 
+		Note: Not all countries have homicide data available for each year, hence they may appear or disappear as you run through years. </p>
+		<h4>Regions:</h4>
 		<div class="multiselect"></div>
-		<h3>Click on the years to see the progress:</h3>
+		<h4>Years:</h4>
 		<svg class="chart" width=1200 height=800></svg>
 		<div id="tooltip"></div>
 
@@ -35,7 +42,7 @@
 <script>
 function getFilteredData(data, year, region){
 		var filteredData = data.filter(function (el) {
-			return el.year == year && region.includes(el.Region) && el.GDPPerCapita  && el.Homicide ; 
+			return el.year == year && region.includes(el.Region) && el.GDPperCapitaPPP  && el.Homicide ; 
 		});
 		return filteredData;
 }
@@ -54,6 +61,8 @@ function getRegionsList() {
 
 async function init() {
 	const data = await d3.csv("https://raw.githubusercontent.com/kautukkhare/narrativeViz/master/GDPAndHomicideData.csv");
+
+	//console.log(data);
 	
 	//get the years as an array
 	const years = [...new Set(data.map(eachData => eachData.year))]
@@ -68,9 +77,12 @@ async function init() {
 	//Get the regions selected
 	var regionList = getRegionsList();
 
+	//Get Country regionList
+	var selectedCountry = [];
+
 	//Define Scales
 	var xlogScale = d3.scaleLog()
-	.domain([100, 200000])
+	.domain([500, 150000])
 	.range([0, 1000])
 	.clamp(true);
 
@@ -82,7 +94,7 @@ async function init() {
 
     var rScale = d3.scaleLinear()
     .domain([9230,1386395000])
-    .range([10,70]);
+    .range([10,90]);
 
     var colorScale = d3.scaleOrdinal()
           .domain(regions)
@@ -109,7 +121,7 @@ async function init() {
   		.attr("type", "checkbox")
   		.attr("id", function(d,i) { return d; })
   		.on('change', function(i) {
-  			console.log(getRegionsList());
+  			//console.log(getRegionsList());
     		plotGraph(scatterPlot,getFilteredData(data,selectedYear, getRegionsList()));
 		});
 
@@ -117,37 +129,6 @@ async function init() {
 	var yearsBarSVG = d3.select("svg")
 	.append("g")
 	.attr("transform", "translate(20,0)");
-
-	yearsBarSVG.selectAll('rect')
-	.data(years)
-	.enter()
-	.append('rect')
-	.attr('x',function(d,i) {return i*rectWidth;})
-	.attr('y',0)
-	.attr('width', rectWidth)
-	.attr('height',rectHeight)
-	.attr('style',"fill:lightgray")
-	.on('click', function(d, i) {
-		selectedYear = d;
-		updateChosenYear();
-		plotGraph(scatterPlot,getFilteredData(data,d, getRegionsList()));
-	  });
-	
-	yearsBarSVG.selectAll('text')
-	.data(years)
-	.enter()
-	.append('text')
-	.attr('x',function(d,i) {return i*rectWidth;})
-	.attr('y',0)
-	.attr("dx", function(d){return 23})
-	.attr("dy", function(d){return 17})
-	.attr('style',"cursor: pointer")
-	.text(function(d){return d})
-	.on('click', function(d, i) {
-		selectedYear = d;
-		updateChosenYear();
-		plotGraph(scatterPlot,getFilteredData(data,d, getRegionsList()));
-	  });
 
 
 	//Add scatterplot element
@@ -169,13 +150,13 @@ async function init() {
 	.append("g")
 	.attr("transform", "translate(70,650)")
 	.call(d3.axisBottom(xlogScale)
-		.tickValues([100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 200000])
+		.tickValues([500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 150000])
 		.tickFormat(d3.format("~s")));
 
 	//Add Axes labels
 	d3.select("svg")
 	.append("g")
-	.attr("transform", "translate(600,750)")
+	.attr("transform", "translate(600,755)")
 	.append("text")             
     .style("text-anchor", "middle")
     .style("font-weight", "bold")
@@ -212,29 +193,105 @@ async function init() {
 
 	//Define plotting function
 	function plotGraph(element, d){
+		// add countries
 		element.selectAll('circle').remove();
 		element.selectAll('circle')
 			.data(d)
 			.enter()
 			.append('circle')
-			.attr("cx", function(d,i) {return xlogScale(parseFloat(d.GDPPerCapita.replace(/,/g, '')));})
+			.attr("cx", function(d,i) {return xlogScale(parseFloat(d.GDPperCapitaPPP.replace(/,/g, '')));})
 			.attr("cy", function(d,i) {return ylogScale(d.Homicide);})
 			.attr("r", function(d,i) {return rScale(parseFloat(d.Population.replace(/,/g, '')));})
-			.style("fill", function(d){ return colorScale(d.Region); })
 			.on("mouseover", function(d,i) {
+				var hm = 'Not Available', hf= 'Not Available';
+				if(d.HomicideFemale != ''){
+					hf = d.HomicideFemale;
+				}
+				if(d.HomicideMale != ''){
+					hm = d.HomicideMale;
+				}
         		tooltip.style("opacity", 1)
                .style("left",(d3.event.pageX)+"px")
                .style("top",(d3.event.pageY)+"px")
                .html("Country: " + d["Short Name"] 
-	      		+ "<br />" + "GDP Per Capita: " + d.GDPPerCapita
+	      		+ "<br />" + "GDP Per Capita PPP($): " + d.GDPperCapitaPPP
 	      		+ "<br />" + "Homicide Rate (per 100,000 people): " + d.Homicide
+	      		+ "<br />" + "Female Homicide Rate (per 100,000 Females): " + hf
+	      		+ "<br />" + "Male Homicide Rate (per 100,000 Males): " + hm
 	      		+ "<br />" + "Population: " + d.Population);
     			})
-    		.on("mouseout", function() { tooltip.style("opacity", 0) });
+    		.on("mouseout", function() { tooltip.style("opacity", 0) })
+    		.on("click", function(d) {
+    			if (selectedCountry.includes(d["Short Name"])){
+					selectedCountry.splice( selectedCountry.indexOf(d["Short Name"]), 1 );
+				}
+				else
+				{
+					selectedCountry.push(d["Short Name"]);
+				}
+				//console.log("selected countries are:"+ selectedCountry);
+				plotGraph(scatterPlot,getFilteredData(data,selectedYear, getRegionsList()));
+    		})
+    		.style("fill", function(d){ 
+				var col = colorScale(d.Region);
+				if (selectedCountry.includes(d["Short Name"])){
+					col = 'black';
+				}
+				return col;
+				});
+	}
+
+	function plotYear(element){
+
+	//Add Years
+		element.selectAll('rect').remove();
+		element.selectAll('rect')
+		.data(years)
+		.enter()
+		.append('rect')
+		.attr('x',function(d,i) {return i*rectWidth;})
+		.attr('y',0)
+		.attr('width', rectWidth)
+		.attr('height',rectHeight)
+		.attr('style',function(d,i) {
+			var col = "fill:lightgray"
+			if (d == selectedYear){
+				col = "fill:steelblue"
+			}
+			return col;
+		}	
+		)
+	.on('click', function(d, i) {
+		selectedYear = d;
+		//console.log("Selected Year is:"+selectedYear)
+		updateChosenYear();
+		plotYear(yearsBarSVG);
+		plotGraph(scatterPlot,getFilteredData(data,d, getRegionsList()));
+	  });
+
+	element.selectAll('text').remove();
+	element.selectAll('text')
+	.data(years)
+	.enter()
+	.append('text')
+	.attr('x',function(d,i) {return i*rectWidth;})
+	.attr('y',0)
+	.attr("dx", function(d){return 23})
+	.attr("dy", function(d){return 17})
+	.attr('style',"cursor: pointer")
+	.text(function(d){return d})
+	.on('click', function(d, i) {
+		selectedYear = d;
+		//console.log("Selected Year is:"+selectedYear)
+		updateChosenYear();
+		plotYear(yearsBarSVG);
+		plotGraph(scatterPlot,getFilteredData(data,d, getRegionsList()));
+	  });
 	}
 
 	//plot data for first year
 	var filteredData = getFilteredData(data,selectedYear,getRegionsList());
+	plotYear(yearsBarSVG);
 	plotGraph(scatterPlot,filteredData);
 	updateChosenYear();
 }
